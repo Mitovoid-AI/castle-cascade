@@ -474,6 +474,14 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 @keyframes slideDown { from { translate: 0 -90px; opacity: 0; } }
 @keyframes fadeUp { from { translate: 0 36px; opacity: 0; } }
 
+/* ---------- ads & purchases (apps only) ---------- */
+.btn.adbtn { min-height: 46px; font-size: 17px; }
+.adic { width: 22px; height: 22px; padding: 3px; border-radius: 50%; background: rgba(255,255,255,.25); flex: none; }
+.linkbtn { align-self: center; padding: 4px 8px; font-size: 13px; font-weight: 800; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 2px; }
+.row.static { cursor: default; }
+.row.static b { color: var(--leaf-deep); font-size: 18px; }
+.row .price { font-size: 15px; color: var(--velvet); }
+
 /* ---------- legal documents ---------- */
 .legalnote { margin: 4px 0 0; font-size: 11px; font-weight: 600; line-height: 1.4; text-align: center; color: var(--muted); }
 .legalnote button { padding: 0; font-weight: 800; color: var(--cream); text-decoration: underline; text-underline-offset: 2px; }

@@ -1,0 +1,12 @@
+{
+  "appId": "com.mitovoid.castlecascade",
+  "appName": "Castle Cascade",
+  "webDir": "www",
+  "backgroundColor": "#12153f",
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "style": "DARK"
+    }
+  }
+}

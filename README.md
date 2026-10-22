@@ -11,6 +11,10 @@ By Mitovoid AI · contact: mitovoid.contact@gmail.com
 - Development: serve the folder and open `index.html`: `python -m http.server 8765`.
 - Jump to any level while testing: open the page with `#lv250`.
 
+## Android and iOS apps
+
+The same game ships as native apps through Capacitor, with AdMob ads and a RevenueCat "Remove Ads" purchase. See [MOBILE.md](MOBILE.md) for building, ad and purchase setup, and store release steps.
+
 ## Website (`docs/`)
 
 `node tools/build.js` regenerates everything in `docs/`:

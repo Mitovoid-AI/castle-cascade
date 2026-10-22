@@ -488,6 +488,14 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 @keyframes slideDown { from { translate: 0 -90px; opacity: 0; } }
 @keyframes fadeUp { from { translate: 0 36px; opacity: 0; } }
 
+/* ---------- ads & purchases (apps only) ---------- */
+.btn.adbtn { min-height: 46px; font-size: 17px; }
+.adic { width: 22px; height: 22px; padding: 3px; border-radius: 50%; background: rgba(255,255,255,.25); flex: none; }
+.linkbtn { align-self: center; padding: 4px 8px; font-size: 13px; font-weight: 800; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 2px; }
+.row.static { cursor: default; }
+.row.static b { color: var(--leaf-deep); font-size: 18px; }
+.row .price { font-size: 15px; color: var(--velvet); }
+
 /* ---------- legal documents ---------- */
 .legalnote { margin: 4px 0 0; font-size: 11px; font-weight: 600; line-height: 1.4; text-align: center; color: var(--muted); }
 .legalnote button { padding: 0; font-weight: 800; color: var(--cream); text-decoration: underline; text-underline-offset: 2px; }
@@ -3460,8 +3468,8 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
     email: 'mitovoid.contact@gmail.com',            // support / privacy contact, e.g. "support@yourgame.com"
     country: 'India',          // governing law, e.g. "India"
     updated: '22 October 2026',
-    ads: false,           // true once the app shows ads (e.g. Google AdMob)
-    purchases: false,     // true once the app sells items through Google Play
+    ads: true,            // the iOS/Android apps show AdMob ads (the web version never does)
+    purchases: true,      // the apps sell a one-time "Remove Ads" via the stores + RevenueCat
     cloudSave: true,      // the web version can save progress to the player's signed-in account
     minAge: 13,
   };
@@ -3481,8 +3489,8 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
       list([
         'You do not need an account, and we never ask for your email, phone number or real name.',
         'Your progress is saved on your own device.',
-        c.ads ? 'The game shows ads from Google AdMob, which uses device information to show and measure ads (details below).' : 'The game shows no ads.',
-        c.purchases ? 'Purchases are handled by Google Play; we never see your payment details.' : 'The game sells nothing.',
+        c.ads ? 'The iOS and Android apps show ads from Google AdMob, which uses device information to show and measure ads (details below). The web version shows no ads.' : 'The game shows no ads.',
+        c.purchases ? 'In the apps you can buy “Remove Ads”. Payment is handled by Google Play or the App Store and recorded with RevenueCat; we never see your payment details.' : 'The game sells nothing.',
         'We do not sell your information.',
       ]),
       '<h3>What the game stores</h3>',
@@ -3493,19 +3501,19 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
       ]),
       '<p>This is kept in your device’s storage for the game. It stays there until you reset your progress or remove the game.</p>',
       c.cloudSave ? '<p><b>Cloud save (web version):</b> if you play on a website while signed in to an account with that service, your progress is also saved to that account under an anonymous ID, so it follows you to other devices. It holds only the game progress listed above.</p>' : '',
-      c.ads ? '<h3>Advertising</h3><p>We use Google AdMob to show ads. To serve, limit and measure ads, AdMob may collect your device’s advertising ID, IP address, approximate location (from the IP address), device and app information, and how you interact with ads. Where the law requires it (for example in the EEA, the UK and Switzerland), you are asked for consent before personalised ads are shown, and you can change that choice from the game’s settings. You can also reset or delete your advertising ID in your device settings. Google’s use of this data is described at <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>.</p>' : '',
-      c.purchases ? '<h3>Purchases</h3><p>Purchases are processed by Google Play. We receive a confirmation that a purchase happened so we can deliver it; we never receive your card or bank details. Google’s privacy policy applies to the payment.</p>' : '',
+      c.ads ? '<h3>Advertising</h3><p>The iOS and Android apps use Google AdMob to show ads: optional ads you choose to watch for a reward, and occasional ads between levels. To serve, limit and measure ads, AdMob may collect your device’s advertising ID, IP address, approximate location (from the IP address), device and app information, and how you interact with ads. Where the law requires it (for example in the EEA, the UK and Switzerland), you are asked for consent before personalised ads are shown, and you can change that choice in <b>Settings → Ad privacy choices</b>. On iPhone and iPad the app asks your permission before using your device’s advertising identifier; if you say no, you still see ads, just less personalised ones. You can also reset or delete your advertising ID in your device settings. Google’s use of this data is described at <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>.</p>' : '',
+      c.purchases ? '<h3>Purchases</h3><p>Purchases in the apps are processed by Google Play (Android) or Apple’s App Store (iOS). We use RevenueCat to confirm and record purchases so that “Remove Ads” can be restored on a new device. RevenueCat receives an anonymous app user ID, your purchase history, your device type and the highest level you have reached in the game, which helps us understand which players buy. We never receive your card or bank details. The store’s privacy policy applies to the payment, and RevenueCat’s is at <a href="https://www.revenuecat.com/privacy">revenuecat.com/privacy</a>.</p>' : '',
       '<h3>What we do not collect</h3>',
       '<p>The game does not access your contacts, photos, camera, microphone, precise location or files, and it does not track you across other apps or websites' + (c.ads ? ' beyond what the ad provider described above does' : '') + '.</p>',
       '<h3>How the information is used</h3>',
       list([
         'To run the game and remember your progress.',
         c.ads ? 'To show ads and keep their frequency reasonable.' : '',
-        c.purchases ? 'To deliver and restore what you buy.' : '',
+        c.purchases ? 'To deliver and restore what you buy, and to understand which players buy.' : '',
         'To answer you if you contact us.',
       ]),
       '<h3>Sharing</h3>',
-      '<p>We do not sell or rent your information. It is shared only with the services that make the game work' + (c.ads ? ' (Google AdMob for ads' + (c.purchases ? ', Google Play for purchases' : '') + ')' : c.purchases ? ' (Google Play for purchases)' : '') + ', or when the law requires it.</p>',
+      '<p>We do not sell or rent your information. It is shared only with the services that make the game work' + (c.ads ? ' (Google AdMob for ads' + (c.purchases ? '; Google Play, Apple and RevenueCat for purchases' : '') + ')' : c.purchases ? ' (Google Play, Apple and RevenueCat for purchases)' : '') + ', or when the law requires it.</p>',
       '<h3>Keeping and deleting your data</h3>',
       '<p>Open <b>Settings → Reset progress</b> to erase your saved game' + (c.cloudSave ? ', including the cloud copy' : '') + '. Removing the game or clearing its storage also deletes it. If you want us to delete anything else, email ' + mail() + '.</p>',
       '<h3>Children</h3>',
@@ -3530,7 +3538,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
       '<p>We give you a personal, non-exclusive, non-transferable and revocable licence to play the game for your own entertainment. You may not sell, rent, copy or redistribute the game, or use it commercially.</p>',
       '<h3>Virtual items</h3>',
       '<p>Coins, stars, lives, boosters and other in-game items have no real-world value. They cannot be exchanged for money or anything outside the game, and they cannot be transferred to other people. We may change how they work or how many you receive in order to balance the game.</p>',
-      c.purchases ? '<h3>Purchases</h3><p>Purchases are made through Google Play and are subject to Google Play’s terms and refund policy. Purchased items are delivered to the game on your device; reinstalling may require “Restore purchases”. Prices are shown in the store before you buy.' + (c.ads ? ' “Remove Ads” removes banner and between-level ads; optional ads you choose to watch for a reward stay available.' : '') + '</p>' : '',
+      c.purchases ? '<h3>Purchases</h3><p>Purchases are made through Google Play or Apple’s App Store and are subject to that store’s terms and refund policy. Purchased items are delivered to the game on your device; after reinstalling or changing device, use <b>Settings → Restore purchases</b>. Prices are shown in the store before you buy.' + (c.ads ? ' “Remove Ads” removes banner and between-level ads; optional ads you choose to watch for a reward stay available.' : '') + '</p>' : '',
       c.ads ? '<h3>Advertising</h3><p>The game shows ads provided by third parties. We are not responsible for the content of those ads or the websites they lead to. Rewarded ads are always optional.</p>' : '',
       '<h3>Fair play</h3>',
       '<p>Do not cheat, hack, modify the game or its save data, exploit bugs, or reverse engineer the game. We may reset progress that was gained this way.</p>',
@@ -3996,6 +4004,56 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
     );
   }
 
+  // ---------- native apps: ads & purchases ----------
+  // window.CCNative exists only inside the iOS/Android apps (src/native.js);
+  // on the web every ad or purchase control below simply does not render.
+
+  const native = () => window.CCNative || null;
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const AD_ICON = '<svg class="adic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13l11-6.5z"/></svg>';
+  function rewardButton(act, label) {
+    const n = native();
+    return n && n.canReward() ? '<button class="btn purple adbtn" data-act="' + act + '">' + AD_ICON + label + '</button>' : '';
+  }
+  function removeAdsLink() {
+    const n = native();
+    if (!n || n.state.noAds || !n.state.canBuy || !n.state.adsOn) return '';
+    return '<button class="linkbtn" data-act="noads">Remove ads · ' + esc(n.state.price) + '</button>';
+  }
+  // Game sounds stay silent while an ad plays.
+  async function withAdAudio(fn) {
+    Sfx.setEnabled(false);
+    try { return await fn(); } finally { Sfx.setEnabled(S.sound); }
+  }
+  async function watchRewarded() {
+    const n = native();
+    if (!n) return false;
+    const ok = await withAdAudio(() => n.showRewarded());
+    if (!ok) toast('Watch the whole ad to get the reward.');
+    return ok;
+  }
+  // A between-level ad may play as the player leaves a finished level.
+  async function leaveLevel(levelN, next) {
+    closeModal();
+    const n = native();
+    if (n) await withAdAudio(() => n.afterLevel(levelN));
+    next();
+  }
+  async function buyNoAds() {
+    const n = native();
+    if (!n) return;
+    const r = await n.buyNoAds();
+    if (r === 'ok') { Sfx.chest(); Confetti.burst(70); toast('Ads removed. Thank you for supporting the game!'); }
+    else if (r === 'pending') toast('Purchase pending. Ads disappear as soon as it completes.');
+    else if (r === 'unavailable' || r === 'error') toast('The store is not available right now. Try again later.');
+  }
+  async function restorePurchases() {
+    const n = native();
+    if (!n) return;
+    const r = await n.restore();
+    toast(r === 'ok' ? 'Purchases restored. Ads are off.' : r === 'none' ? 'No purchases found for this store account.' : 'The store is not available right now. Try again later.');
+  }
+
   // ---------- home ----------
 
   let screen = 'home';
@@ -4206,6 +4264,19 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
     );
   }
 
+  // Settings rows for the app stores; empty on the web.
+  function shopRows() {
+    const n = native();
+    if (!n) return '';
+    const st = n.state;
+    const remove = st.noAds ? '<div class="row static"><span>Ads removed</span><b aria-hidden="true">✓</b></div>'
+      : st.canBuy ? '<button class="row" data-act="noads"><span>Remove ads</span><b class="price">' + esc(st.price) + '</b></button>' : '';
+    return '<div class="rows">' + remove +
+      '<button class="row" data-act="restore"><span>Restore purchases</span><b aria-hidden="true">›</b></button>' +
+      (st.privacyChoices ? '<button class="row" data-act="adprivacy"><span>Ad privacy choices</span><b aria-hidden="true">›</b></button>' : '') +
+      '</div>';
+  }
+
   function openSettings(inGame) {
     const acts = {
       sound: () => { S.sound = !S.sound; Sfx.setEnabled(S.sound); save(); openSettings(inGame); },
@@ -4213,6 +4284,9 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
       privacy: () => openLegal('privacy'),
       terms: () => openLegal('terms'),
       credits: () => openLegal('credits'),
+      noads: () => buyNoAds().then(() => openSettings(inGame)),
+      restore: () => restorePurchases().then(() => openSettings(inGame)),
+      adprivacy: () => { const n = native(); if (n) n.privacyChoices(); },
       close: closeModal,
       reset: (b) => {
         if (b.dataset.armed) { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } S = fresh(); save(); closeModal(); renderHome(); toast('Progress reset'); return; }
@@ -4240,6 +4314,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
       '<button class="row" data-act="terms"><span>Terms of Service</span><b aria-hidden="true">›</b></button>' +
       '<button class="row" data-act="credits"><span>Credits & Licences</span><b aria-hidden="true">›</b></button>' +
       '</div>' +
+      shopRows() +
       (inGame ? '<button class="btn green big" data-act="close" data-focus>Resume</button><button class="btn ghost" data-act="quit">Quit level</button>'
         : '<button class="btn purple" data-act="close" data-focus>Done</button><button class="btn ghost danger" data-act="reset">Reset progress and delete my data</button>') +
       '<p class="fine">Level ' + fmtN(S.level) + (S.level <= LV.LEVEL_COUNT ? ' of ' + fmtN(LV.LEVEL_COUNT) : ' · endless levels') + ' · ' + fmtN(S.wins) + ' wins</p>',
@@ -4261,9 +4336,21 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
       '<div class="chestwrap">' + icon('heart', 'chestimg dim') + '</div>' +
       '<p class="sub">Next life in <b id="lifeWait">' + fmtTime(LIFE_MS - (Date.now() - S.lifeTs)) + '</b></p>' +
       '<button class="btn gold big" data-act="refill" data-focus>Refill 5 lives <span class="cost">' + icon('coin', 'ic sm') + REFILL_PRICE + '</span></button>' +
+      rewardButton('adLife', 'Watch an ad: +1 life') +
       '<button class="btn ghost" data-act="close">Wait</button>',
       {
         close: () => { clearInterval(timer); closeModal(); },
+        adLife: async () => {
+          if (!(await watchRewarded())) return;
+          tickLives();
+          S.lives = Math.min(MAX_LIVES, S.lives + 1);
+          save();
+          clearInterval(timer);
+          closeModal();
+          renderHome();
+          Sfx.coin();
+          toast('+1 life');
+        },
         refill: () => {
           if (S.coins < REFILL_PRICE) { toast('Not enough coins yet. Lives refill on their own every 30 minutes.'); return; }
           S.coins -= REFILL_PRICE;
@@ -4297,7 +4384,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
           '<h3>' + INFO[b].name + '</h3><p class="sub">' + INFO[b].desc + '</p>' +
           '<div class="rtiles">' + rewardTiles({ [b]: 3 }) + '</div>' +
           '<button class="btn green big" data-act="ok" data-focus>Awesome</button>',
-          { ok: () => openLevelStart() }
+          { ok: () => openLevelStart(), back: () => openLevelStart() }
         );
         Sfx.special();
         return;
@@ -4336,6 +4423,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
           }
           openLevelStart();
         },
+        back: closeModal,
         play: () => {
           const chosen = PRE.filter((b) => preSel[b] && S.inv[b] > 0);
           for (const b of chosen) S.inv[b]--;
@@ -4352,7 +4440,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
 
   // ---------- gameplay ----------
 
-  let game = null, level = null, busy = false, extraBuys = 0, activeBooster = null, shownGoals = [], hintTimer = 0;
+  let game = null, level = null, busy = false, extraBuys = 0, activeBooster = null, shownGoals = [], hintTimer = 0, adMovesUsed = false;
   const view = new window.CCBoard($('#board'), {
     canInput: () => !busy && game && game.status === 'play',
     onSwap: (a, b) => {
@@ -4427,6 +4515,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
     level = LV.getLevel(n);
     game = new E.Game(level, { boosters });
     extraBuys = 0;
+    adMovesUsed = false;
     activeBooster = null;
     busy = true;
     S.plays++;
@@ -4595,6 +4684,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
     save();
     showWin({ n, kind, base, bonusCoins, coins, coinsBefore, chestFull });
     checkAchievements();
+    if (native()) native().track(S.level);
   }
 
   function showWin(w) {
@@ -4614,15 +4704,30 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
       '<p class="next">Next: Level ' + fmtN(w.n + 1) + (nextKind ? ' · <b class="k' + nextKind + '">' + kindName(nextKind) + '</b>' : '') + '</p>' +
       (w.chestFull ? '<button class="btn gold big pulse" data-act="chest" data-focus>Open level chest</button>'
         : '<button class="btn green big pulse" data-act="next" data-focus>Next level ▸</button>') +
-      '<button class="btn ' + (canBuild ? 'gold' : 'ghost') + '" data-act="home">' + (canBuild ? 'Build in your kingdom ★' : 'Kingdom') + '</button>',
+      '<button class="btn ' + (canBuild ? 'gold' : 'ghost') + '" data-act="home">' + (canBuild ? 'Build in your kingdom ★' : 'Kingdom') + '</button>' +
+      rewardButton('adDouble', 'Watch an ad: double coins (+' + fmtN(w.coins) + ')') +
+      removeAdsLink(),
       {
-        next: () => { closeModal(); game = null; show('home'); openLevelStart(); },
-        home: () => { closeModal(); game = null; show('home'); },
+        next: () => leaveLevel(w.n, () => { game = null; show('home'); openLevelStart(); }),
+        home: () => leaveLevel(w.n, () => { game = null; show('home'); }),
+        back: () => leaveLevel(w.n, () => { game = null; show('home'); }),
         chest: () => {
           S.chest = 0;
           save();
-          openChest('Level chest!', 'Ten wins in the bag. Open it up!', rollChest(false), () => { game = null; show('home'); openLevelStart(); });
+          openChest('Level chest!', 'Ten wins in the bag. Open it up!', rollChest(false), () => leaveLevel(w.n, () => { game = null; show('home'); openLevelStart(); }));
         },
+        adDouble: async (btn) => {
+          if (!(await watchRewarded())) return;
+          S.coins += w.coins;
+          S.stats.coinsEarned += w.coins;
+          save();
+          Sfx.coin();
+          const el = $('#winCoins');
+          if (el) animateNumber(el, w.coins, w.coins * 2, 700);
+          btn.remove();
+          toast('Coins doubled: +' + fmtN(w.coins));
+        },
+        noads: buyNoAds,
       },
       'win'
     );
@@ -4635,6 +4740,15 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
     return '<div class="goalrow">' + game.goals.filter((g) => g.left > 0).map((g) => '<div class="g">' + icon(goalIcon(g), 'ic lg') + '<b>' + g.left + '</b><small>' + goalLabel(g) + '</small></div>').join('') + '</div>';
   }
 
+  async function keepPlaying() {
+    closeModal();
+    game.addMoves(5);
+    renderMoves();
+    await view.play(game.takeEvents());
+    busy = false;
+    armHint();
+  }
+
   function onOutOfMoves() {
     busy = true;
     const price = EXTRA_MOVES_PRICE[Math.min(extraBuys, EXTRA_MOVES_PRICE.length - 1)];
@@ -4643,6 +4757,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
       '<div class="ribbon red">Out of moves!</div>' +
       '<p class="sub">' + (total <= 5 ? 'So close! Only ' + total + ' left:' : 'You still need:') + '</p>' + remainingHtml() +
       '<button class="btn gold big pulse" data-act="more" data-focus>+5 moves <span class="cost">' + icon('coin', 'ic sm') + fmtN(price) + '</span></button>' +
+      (adMovesUsed ? '' : rewardButton('adMoves', 'Watch an ad: +5 moves')) +
       '<button class="btn ghost" data-act="quit">Give up</button>' +
       '<p class="fine">Giving up costs a life' + (S.streak > 0 ? ' and ends your ' + S.streak + '-win streak' : '') + '.</p>',
       {
@@ -4652,12 +4767,12 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
           extraBuys++;
           save();
           Sfx.coin();
-          closeModal();
-          game.addMoves(5);
-          renderMoves();
-          await view.play(game.takeEvents());
-          busy = false;
-          armHint();
+          await keepPlaying();
+        },
+        adMoves: async () => {
+          if (!(await watchRewarded())) return;
+          adMovesUsed = true;
+          await keepPlaying();
         },
         quit: () => {
           loseLife();
@@ -4666,6 +4781,8 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
           Sfx.lose();
           showFail();
         },
+        // The back button must not quietly cost a life here.
+        back: () => {},
       }
     );
   }
@@ -4673,6 +4790,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   function showFail() {
     tickLives();
     const lives = unlimited() ? '∞' : S.lives;
+    const n = level.n;
     showModal(
       '<div class="ribbon red">Level failed</div>' +
       '<div class="chestwrap">' + icon('heart', 'chestimg dim') + '</div>' +
@@ -4680,8 +4798,9 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
       '<button class="btn green big" data-act="retry" data-focus>Try again</button>' +
       '<button class="btn ghost" data-act="home">Kingdom</button>',
       {
-        retry: () => { closeModal(); game = null; show('home'); openLevelStart(); },
-        home: () => { closeModal(); game = null; show('home'); },
+        retry: () => leaveLevel(n, () => { game = null; show('home'); openLevelStart(); }),
+        home: () => leaveLevel(n, () => { game = null; show('home'); }),
+        back: () => leaveLevel(n, () => { game = null; show('home'); }),
       }
     );
   }
@@ -4726,6 +4845,24 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
   $('#game').addEventListener('pointerdown', () => { if (view.speed > 1 && view.speed < 4) view.speed = 4; });
   window.addEventListener('resize', () => { if (screen === 'game') layoutGame(); });
   setInterval(() => { if (screen === 'home') renderTop(); }, 1000);
+
+  // Android back button: close the top layer; on the home screen the app minimises.
+  function handleBack() {
+    if (!$('#legalView').hidden) { closeLegal(); return true; }
+    if (!$('#modal').hidden) {
+      const fn = modalActs.back || modalActs.close;
+      if (fn) fn();
+      return true;
+    }
+    if (screen === 'profile') { show('home'); return true; }
+    if (screen === 'game') { if (!busy) openSettings(true); return true; }
+    return false;
+  }
+  if (native()) {
+    native().onBack(handleBack);
+    native().onPause(() => Sfx.setEnabled(false));
+    native().onResume(() => Sfx.setEnabled(S.sound));
+  }
 
   // Debug jump for playtesting: open the page with #lv250 to play level 250.
   const jump = /^#lv(\d+)$/.exec(location.hash);
@@ -4850,6 +4987,8 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
         const home = $('#home');
         home.classList.add('enter');
         setTimeout(() => home.classList.remove('enter'), 1400);
+        // Consent form and ad loading wait until the player is past the intro.
+        if (native()) native().start();
       }, reduced ? 50 : 620);
     });
   }

@@ -1,0 +1,33 @@
+{
+  "name": "castle-cascade",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Castle Cascade: a match-3 puzzle game by Mitovoid AI, for the web, Android and iOS.",
+  "scripts": {
+    "build": "node tools/build.js",
+    "smoke": "node tools/smoke.js",
+    "tune": "node tools/tune.js 1500 8",
+    "sync": "node tools/build.js && npx cap sync",
+    "android": "node tools/build.js && npx cap sync android && npx cap open android",
+    "ios": "node tools/build.js && npx cap sync ios && npx cap open ios",
+    "icons": "node tools/icons.js && npx capacitor-assets generate --android --ios"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@capacitor-community/admob": "8.2.1",
+    "@capacitor/android": "8.5.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3",
+    "@revenuecat/purchases-capacitor": "13.7.4"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "3.0.5",
+    "@capacitor/cli": "8.5.3",
+    "esbuild": "0.28.2"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "sharp@0.32.6": true
+  }
+}
