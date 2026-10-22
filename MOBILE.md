@@ -58,7 +58,7 @@ Settings in the app includes **Restore purchases**, which Apple requires.
 
 - Create a signing key and use **Play App Signing**; build a release bundle in Android Studio (Build → Generate Signed App Bundle).
 - New personal accounts need a closed test with **12 testers for 14 days** before production.
-- Store listing: privacy policy URL `https://ashutoshroy02.github.io/castle-cascade/privacy-policy.html`.
+- Store listing: privacy policy URL `https://mitovoid-ai.github.io/castle-cascade/privacy-policy.html`.
 - **Data safety**: declare Device or other IDs (advertising ID, used by AdMob), Purchase history (RevenueCat/Play), App interactions (ads); data is not sold.
 - **Target audience**: 13+ (keeps the game out of the Designed for Families ad rules). Content rating questionnaire: puzzle, no violence.
 
