@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Castle Cascade</title>
+<meta name="description" content="Castle Cascade is a free match-3 puzzle game by Mitovoid AI: 1,500 levels, comets, dragonflies, powder kegs and prisms, and a castle to rebuild. Play in your browser.">
+<meta property="og:title" content="Castle Cascade">
+<meta property="og:description" content="A match-3 puzzle adventure with 1,500 levels. Play free in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+  /* Landing page in the game's own look: royal night sky, gold, parchment cards. */
+  :root {
+    color-scheme: dark;
+    --night: #12153f;
+    --night-hi: #2d3391;
+    --glow: #5a4fd6;
+    --gold: #ffcf3f;
+    --gold-deep: #b97c00;
+    --cream: #fff6e3;
+    --muted: #c3c6f0;
+    --velvet-deep: #4f1878;
+    --leaf: #55c736;
+    --leaf-deep: #2b7a1a;
+    --glass: rgba(10, 12, 48, 0.55);
+    --font-display: "Lilita One", "Arial Black", "Trebuchet MS", sans-serif;
+    --font-body: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: var(--cream);
+    font: 600 17px/1.6 var(--font-body);
+    background:
+      radial-gradient(1.5px 1.5px at 12% 14%, rgba(255,255,255,.8) 50%, transparent 51%),
+      radial-gradient(1px 1px at 72% 8%, rgba(255,255,255,.7) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 88% 30%, rgba(255,255,255,.6) 50%, transparent 51%),
+      radial-gradient(1px 1px at 35% 38%, rgba(255,255,255,.5) 50%, transparent 51%),
+      radial-gradient(110% 60% at 50% 0%, var(--glow) 0%, var(--night-hi) 40%, var(--night) 100%) fixed;
+    background-color: var(--night);
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  a { color: var(--gold); }
+  a:focus-visible, .play:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 18px; }
+  .studio { font-weight: 900; letter-spacing: .08em; text-transform: uppercase; font-size: 13px; color: var(--muted); }
+  header.top nav { display: flex; gap: 16px; font-size: 14px; }
+  header.top nav a { color: var(--muted); text-decoration: none; }
+  header.top nav a:hover { color: var(--cream); }
+
+  .hero { display: grid; justify-items: center; text-align: center; gap: 14px; padding-block: 36px 28px; }
+  .crown { width: 104px; height: 104px; filter: drop-shadow(0 0 22px rgba(255, 207, 63, .7)); }
+  h1 { margin: 0; line-height: .95; font-family: var(--font-display); font-weight: 400; letter-spacing: .02em; }
+  h1 .w1 { display: block; font-size: clamp(56px, 13vw, 104px); color: var(--gold); text-shadow: 0 5px 0 var(--gold-deep), 0 11px 0 var(--velvet-deep), 0 0 40px rgba(255,207,63,.45); }
+  h1 .w2 { display: block; font-size: clamp(50px, 11.5vw, 92px); color: #a8ecff; text-shadow: 0 5px 0 #2f6fd0, 0 11px 0 #1b1f6b, 0 0 40px rgba(120,200,255,.45); }
+  .lede { max-width: 34ch; margin: 18px 0 4px; font-size: clamp(18px, 2.6vw, 22px); color: var(--cream); text-wrap: balance; }
+  .play {
+    display: inline-flex; align-items: center; gap: 10px; margin-top: 8px; padding: 16px 34px; border-radius: 22px;
+    font: 400 26px var(--font-display); letter-spacing: .03em; color: #fff; text-decoration: none; text-shadow: 0 2px 0 rgba(0,0,0,.25);
+    background: linear-gradient(#93f565, var(--leaf) 55%, #3a9a20);
+    box-shadow: 0 7px 0 var(--leaf-deep), 0 14px 34px rgba(85,199,54,.35), inset 0 3px 0 rgba(255,255,255,.45);
+  }
+  .play:active { transform: translateY(4px); box-shadow: 0 3px 0 var(--leaf-deep); }
+  .soon { margin: 6px 0 0; font-size: 14px; color: var(--muted); }
+
+  .strip { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; padding-block: 18px 8px; }
+  .strip img { width: 52px; height: 52px; animation: bob 3s ease-in-out infinite; }
+  .strip img:nth-child(2n) { animation-delay: .5s; }
+  .strip img:nth-child(3n) { animation-delay: 1s; }
+  @keyframes bob { 50% { transform: translateY(-6px); } }
+
+  section h2 { margin: 48px 0 16px; text-align: center; font: 400 clamp(30px, 5vw, 40px) var(--font-display); color: var(--gold); text-shadow: 0 3px 0 var(--velvet-deep); }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .card { display: grid; grid-template-columns: 56px 1fr; gap: 4px 14px; align-items: start; padding: 18px; border-radius: 20px; background: var(--glass); box-shadow: inset 0 0 0 2px rgba(255, 207, 63, .28); }
+  .card img { grid-row: span 2; width: 56px; height: 56px; }
+  .card h3 { margin: 0; font: 400 21px var(--font-display); letter-spacing: .01em; }
+  .card p { margin: 0; font-size: 15px; color: var(--muted); }
+
+  .boosters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  @media (max-width: 760px) { .boosters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 600px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .booster { text-align: center; padding: 18px 14px; border-radius: 20px; background: linear-gradient(#fff3d6, #f6dfab); color: #3a1d52; box-shadow: 0 0 0 3px #e7b955, 0 10px 24px rgba(0,0,0,.3); }
+  .booster img { width: 64px; height: 64px; }
+  .booster h3 { margin: 4px 0 2px; font: 400 22px var(--font-display); }
+  .booster .how { margin: 0; font-size: 13px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; color: #8a3cc4; }
+  .booster p { margin: 6px 0 0; font-size: 15px; }
+
+  footer { margin-top: 64px; padding-block: 28px max(28px, env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255,255,255,.12); font-size: 14px; color: var(--muted); }
+  footer .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+  footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
+  footer a { color: var(--cream); }
+
+  @media (prefers-reduced-motion: reduce) { .strip img { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="studio">Mitovoid AI</span>
+    <nav aria-label="Site">
+      <a href="privacy-policy.html">Privacy</a>
+      <a href="terms.html">Terms</a>
+      <a href="mailto:mitovoid.contact@gmail.com">Contact</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="hero">
+      <img class="crown" alt="" data-icon="relic">
+      <h1><span class="w1">Castle</span><span class="w2">Cascade</span></h1>
+      <p class="lede">Swipe gems, set off comets and powder kegs, and rebuild a fallen kingdom one room at a time.</p>
+      <a class="play" href="play.html">Play free now</a>
+      <p class="soon">Plays in your browser. No account, no download. Android app coming soon.</p>
+    </div>
+
+    <div class="strip" aria-hidden="true">
+      <img alt="" data-icon="gem0"><img alt="" data-icon="gem1"><img alt="" data-icon="rh"><img alt="" data-icon="gem2">
+      <img alt="" data-icon="pr"><img alt="" data-icon="gem3"><img alt="" data-icon="tnt"><img alt="" data-icon="gem4"><img alt="" data-icon="lb">
+    </div>
+
+    <section aria-labelledby="whatH">
+      <h2 id="whatH">What’s inside</h2>
+      <div class="grid">
+        <div class="card"><img alt="" data-icon="star"><h3>1,500 levels</h3><p>Every level tuned by thousands of test plays, with a hard level every tenth and a big challenge every fiftieth.</p></div>
+        <div class="card"><img alt="" data-icon="chestOpen"><h3>Rewards after every win</h3><p>Coins, stars, a chest every ten wins, win-streak boosters, daily gifts and achievements to claim.</p></div>
+        <div class="card"><img alt="" data-icon="crate"><h3>Obstacles to beat</h3><p>Crack crates, clear moss, break chains, shatter stone and bring golden crowns down to the bottom.</p></div>
+        <div class="card"><img alt="" data-icon="heart"><h3>Rebuild the kingdom</h3><p>Spend your stars restoring throne halls, gardens, towers and more, room after room.</p></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="boostH">
+      <h2 id="boostH">Build boosters</h2>
+      <div class="boosters">
+        <div class="booster"><img alt="" data-icon="rh"><h3>Comet</h3><p class="how">Match 4 in a line</p><p>Streaks across a whole row or column.</p></div>
+        <div class="booster"><img alt="" data-icon="pr"><h3>Dragonfly</h3><p class="how">Match a 2×2 square</p><p>Flies straight to the tile you need.</p></div>
+        <div class="booster"><img alt="" data-icon="tnt"><h3>Powder Keg</h3><p class="how">Match an L or T</p><p>Blasts everything around it.</p></div>
+        <div class="booster"><img alt="" data-icon="lb"><h3>Prism</h3><p class="how">Match 5 in a line</p><p>Clears every piece of one colour.</p></div>
+      </div>
+      <p class="soon" style="text-align:center;margin-top:16px">Swipe two boosters into each other for an even bigger combo.</p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="row">
+      <span>© 2026 Mitovoid AI · Castle Cascade is an independent game.</span>
+      <nav aria-label="Legal">
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="terms.html">Terms of Service</a>
+        <span>Contact: <a href="mailto:mitovoid.contact@gmail.com">mitovoid.contact@gmail.com</a></span>
+      </nav>
+    </div>
+  </footer>
+</div>
+<script src="assets/art.js"></script>
+<script>
+  // Icons are drawn by the game's own art code, so the site needs no image files.
+  document.querySelectorAll('img[data-icon]').forEach(function (img) {
+    var n = img.dataset.icon;
+    img.src = (n === 'rh' || n === 'pr' || n === 'tnt' || n === 'lb')
+      ? CCArt.piece({ k: n, c: -1 }, 128).toDataURL()
+      : CCArt.iconURL(n, 128);
+  });
+</script>
+</body>
+</html>
