@@ -1,6 +1,6 @@
 /* Castle Cascade — native layer for the iOS and Android apps:
- * AdMob ads (with the consent form and iOS tracking prompt), the RevenueCat
- * "Remove Ads" purchase, and app lifecycle / back button.
+ * AdMob ads (with the consent form and iOS tracking prompt), Castle Cascade
+ * Pro through RevenueCat (paywall, Customer Center), and app lifecycle / back button.
  * tools/build.js bundles this into www/native.js. In a browser it does
  * nothing, so the web game simply has no ads or purchases.
  * The game talks to it through window.CCNative (see js/app.js).
@@ -10,7 +10,8 @@ import { App } from '@capacitor/app';
 import {
   AdMob, AdmobConsentStatus, MaxAdContentRating, RewardAdPluginEvents, InterstitialAdPluginEvents,
 } from '@capacitor-community/admob';
-import { Purchases } from '@revenuecat/purchases-capacitor';
+import { Purchases, PURCHASES_ERROR_CODE } from '@revenuecat/purchases-capacitor';
+import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui';
 import CONFIG from './config.js';
 
 if (Capacitor.isNativePlatform()) {
@@ -18,7 +19,9 @@ if (Capacitor.isNativePlatform()) {
   const ids = CONFIG.admob[platform];
   const state = {
     adsOn: false, rewardedReady: false, interstitialReady: false,
-    noAds: false, canBuy: false, price: '', privacyChoices: false,
+    // noAds: the player has Castle Cascade Pro. proUntil: renewal or expiry
+    // date of a subscription (empty for lifetime). canBuy: an offering loaded.
+    noAds: false, proUntil: '', canBuy: false, price: '', privacyChoices: false,
   };
   const listeners = new Set();
   const emit = () => listeners.forEach((fn) => { try { fn(state); } catch (e) { /* listener errors stay local */ } });
@@ -26,14 +29,34 @@ if (Capacitor.isNativePlatform()) {
 
   // ---------- purchases (RevenueCat) ----------
 
-  const rcKey = CONFIG.revenuecat[platform] || '';
+  const rc = CONFIG.revenuecat;
+  const rcKey = (rc.useTestStore ? rc.testStore : rc[platform]) || '';
   const rcEnabled = rcKey && !/REPLACE/.test(rcKey);
   let rcReady = false;
-  let removeAdsPackage = null;
+  let offering = null;
 
   function applyCustomer(info) {
     const active = info && info.entitlements && info.entitlements.active;
-    state.noAds = !!(active && active[CONFIG.entitlement]);
+    const pro = active && active[CONFIG.entitlement];
+    state.noAds = !!pro;
+    state.proUntil = pro && pro.expirationDate ? pro.expirationDate : '';
+    emit();
+  }
+
+  // Shortest price to show on a button: the monthly price if there is one,
+  // otherwise whatever the offering has (the paywall shows every plan).
+  function priceLabel(o) {
+    if (!o) return '';
+    if (o.monthly) return o.monthly.product.priceString + '/mo';
+    const p = o.lifetime || o.availablePackages[0];
+    return p ? p.product.priceString : '';
+  }
+
+  async function loadOffering() {
+    const offerings = await Purchases.getOfferings();
+    offering = (offerings && offerings.current) || null;
+    state.canBuy = !!(offering && offering.availablePackages.length);
+    state.price = priceLabel(offering);
     emit();
   }
 
@@ -42,29 +65,61 @@ if (Capacitor.isNativePlatform()) {
     try {
       await Purchases.configure({ apiKey: rcKey });
       rcReady = true;
+      await Purchases.addCustomerInfoUpdateListener(applyCustomer);
       const { customerInfo } = await Purchases.getCustomerInfo();
       applyCustomer(customerInfo);
-      await Purchases.addCustomerInfoUpdateListener(applyCustomer);
-      // The current offering's lifetime package is the one-time "Remove Ads".
-      const offerings = await Purchases.getOfferings();
-      const current = offerings && offerings.current;
-      removeAdsPackage = current ? (current.lifetime || current.availablePackages[0] || null) : null;
-      state.canBuy = !!removeAdsPackage;
-      state.price = removeAdsPackage ? removeAdsPackage.product.priceString : '';
-      emit();
+      await loadOffering();
     } catch (e) {
       console.warn('[purchases] ' + (e && e.message));
     }
   }
 
-  async function buyNoAds() {
-    if (!removeAdsPackage) return 'unavailable';
+  function errorResult(e) {
+    const code = e && String(e.code);
+    if (e && e.userCancelled || code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return 'cancelled';
+    if (code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) return 'pending';
+    if (code === PURCHASES_ERROR_CODE.PRODUCT_ALREADY_PURCHASED_ERROR) return 'owned';
+    return 'error';
+  }
+
+  async function refreshCustomer() {
+    const { customerInfo } = await Purchases.getCustomerInfo();
+    applyCustomer(customerInfo);
+  }
+
+  // Without a dashboard paywall the lifetime plan is bought directly.
+  async function buyDirect() {
+    const pkg = offering && (offering.lifetime || offering.availablePackages[0]);
+    if (!pkg) return 'unavailable';
     try {
-      const { customerInfo } = await Purchases.purchasePackage({ aPackage: removeAdsPackage });
+      const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
       applyCustomer(customerInfo);
       return state.noAds ? 'ok' : 'pending';
     } catch (e) {
-      return e && (e.userCancelled || String(e.code) === '1') ? 'cancelled' : 'error';
+      return errorResult(e);
+    }
+  }
+
+  // Opens the RevenueCat paywall (designed in the dashboard) with every plan.
+  async function buyNoAds() {
+    if (!rcReady) return 'unavailable';
+    if (state.noAds) return 'ok';
+    if (!offering) await loadOffering().catch(() => {});
+    try {
+      const { result } = await RevenueCatUI.presentPaywallIfNeeded({
+        requiredEntitlementIdentifier: CONFIG.entitlement,
+        displayCloseButton: true,
+      });
+      if (result === PAYWALL_RESULT.PURCHASED || result === PAYWALL_RESULT.RESTORED) {
+        await refreshCustomer();
+        return state.noAds ? 'ok' : 'pending';
+      }
+      if (result === PAYWALL_RESULT.NOT_PRESENTED) { await refreshCustomer(); return state.noAds ? 'ok' : 'error'; }
+      if (result === PAYWALL_RESULT.CANCELLED) return 'cancelled';
+      return 'error';
+    } catch (e) {
+      console.warn('[paywall] ' + (e && e.message));
+      return buyDirect();
     }
   }
 
@@ -75,6 +130,19 @@ if (Capacitor.isNativePlatform()) {
       applyCustomer(customerInfo);
       return state.noAds ? 'ok' : 'none';
     } catch (e) {
+      return 'error';
+    }
+  }
+
+  // Customer Center: cancel, change plan, request a refund or restore.
+  async function manage() {
+    if (!rcReady) return 'unavailable';
+    try {
+      await RevenueCatUI.presentCustomerCenter();
+      await refreshCustomer();
+      return 'ok';
+    } catch (e) {
+      console.warn('[customer center] ' + (e && e.message));
       return 'error';
     }
   }
@@ -222,6 +290,7 @@ if (Capacitor.isNativePlatform()) {
     afterLevel,
     buyNoAds,
     restore,
+    manage,
     privacyChoices,
     track,
     onBack(fn) { backHandler = fn; },

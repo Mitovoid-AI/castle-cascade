@@ -422,7 +422,7 @@
   function removeAdsLink() {
     const n = native();
     if (!n || n.state.noAds || !n.state.canBuy || !n.state.adsOn) return '';
-    return '<button class="linkbtn" data-act="noads">Remove ads · ' + esc(n.state.price) + '</button>';
+    return '<button class="linkbtn" data-act="noads">Go ad-free with Pro' + (n.state.price ? ' · ' + esc(n.state.price) : '') + '</button>';
   }
   // Game sounds stay silent while an ad plays.
   async function withAdAudio(fn) {
@@ -446,16 +446,24 @@
   async function buyNoAds() {
     const n = native();
     if (!n) return;
-    const r = await n.buyNoAds();
-    if (r === 'ok') { Sfx.chest(); Confetti.burst(70); toast('Ads removed. Thank you for supporting the game!'); }
-    else if (r === 'pending') toast('Purchase pending. Ads disappear as soon as it completes.');
+    const had = n.state.noAds;
+    const r = await withAdAudio(() => n.buyNoAds());
+    if (r === 'ok' && !had) { Sfx.chest(); Confetti.burst(70); toast('Welcome to Castle Cascade Pro! Between-level ads are off.'); }
+    else if (r === 'pending') toast('Purchase pending. Ads switch off as soon as it completes.');
+    else if (r === 'owned') toast('You already own Pro. Tap Restore purchases in Settings.');
     else if (r === 'unavailable' || r === 'error') toast('The store is not available right now. Try again later.');
   }
   async function restorePurchases() {
     const n = native();
     if (!n) return;
     const r = await n.restore();
-    toast(r === 'ok' ? 'Purchases restored. Ads are off.' : r === 'none' ? 'No purchases found for this store account.' : 'The store is not available right now. Try again later.');
+    toast(r === 'ok' ? 'Purchases restored. Pro is active.' : r === 'none' ? 'No purchases found for this store account.' : 'The store is not available right now. Try again later.');
+  }
+  async function managePro() {
+    const n = native();
+    if (!n) return;
+    const r = await withAdAudio(() => n.manage());
+    if (r !== 'ok') toast('The store is not available right now. Try again later.');
   }
 
   // ---------- home ----------
@@ -673,9 +681,12 @@
     const n = native();
     if (!n) return '';
     const st = n.state;
-    const remove = st.noAds ? '<div class="row static"><span>Ads removed</span><b aria-hidden="true">✓</b></div>'
-      : st.canBuy ? '<button class="row" data-act="noads"><span>Remove ads</span><b class="price">' + esc(st.price) + '</b></button>' : '';
-    return '<div class="rows">' + remove +
+    const until = st.proUntil ? new Date(st.proUntil).toLocaleDateString() : '';
+    const pro = st.noAds
+      ? '<div class="row static"><span>Pro' + (until ? ' until ' + esc(until) : ' · lifetime') + '</span><b aria-hidden="true">✓</b></div>' +
+        '<button class="row" data-act="manage"><span>Manage Pro</span><b aria-hidden="true">›</b></button>'
+      : st.canBuy ? '<button class="row" data-act="noads"><span>Go ad-free with Pro</span><b class="price">' + esc(st.price) + '</b></button>' : '';
+    return '<div class="rows">' + pro +
       '<button class="row" data-act="restore"><span>Restore purchases</span><b aria-hidden="true">›</b></button>' +
       (st.privacyChoices ? '<button class="row" data-act="adprivacy"><span>Ad privacy choices</span><b aria-hidden="true">›</b></button>' : '') +
       '</div>';
@@ -690,6 +701,7 @@
       credits: () => openLegal('credits'),
       noads: () => buyNoAds().then(() => openSettings(inGame)),
       restore: () => restorePurchases().then(() => openSettings(inGame)),
+      manage: () => managePro().then(() => openSettings(inGame)),
       adprivacy: () => { const n = native(); if (n) n.privacyChoices(); },
       close: closeModal,
       reset: (b) => {

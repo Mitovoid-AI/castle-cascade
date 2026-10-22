@@ -11,3 +11,5 @@ android/local.properties
 builds/
 *.apk
 *.aab
+android/keystore.properties
+android/.kotlin/

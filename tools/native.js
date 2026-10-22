@@ -11,10 +11,10 @@ const TRACKING_TEXT = 'Allowing tracking lets us show you ads that fit your inte
 function patchAndroid(appId) {
   const file = path.join(root, 'android', 'app', 'src', 'main', 'AndroidManifest.xml');
   if (!fs.existsSync(file)) return console.log('android: no project, skipped');
-  let xml = fs.readFileSync(file, 'utf8');
+  let xml = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
   const meta = '<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="' + appId + '" />';
   if (/com\.google\.android\.gms\.ads\.APPLICATION_ID/.test(xml)) {
-    xml = xml.replace(/<meta-data android:name="com\.google\.android\.gms\.ads\.APPLICATION_ID"[^>]*\/>/, meta);
+    xml = xml.replace(/<meta-data\s+android:name="com\.google\.android\.gms\.ads\.APPLICATION_ID"[^>]*\/>/, meta);
   } else {
     xml = xml.replace(/(\s*)<\/application>/, '\n        ' + meta + '$1</application>');
   }
@@ -35,7 +35,7 @@ function setPlistKey(plist, key, valueXml) {
 function patchIos(appId) {
   const file = path.join(root, 'ios', 'App', 'App', 'Info.plist');
   if (!fs.existsSync(file)) return console.log('ios: no project, skipped');
-  let plist = fs.readFileSync(file, 'utf8');
+  let plist = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
   plist = setPlistKey(plist, 'GADApplicationIdentifier', '<string>' + appId + '</string>');
   plist = setPlistKey(plist, 'NSUserTrackingUsageDescription', '<string>' + TRACKING_TEXT + '</string>');
   // Google's own network ID; add the third-party list from the AdMob iOS guide if you use mediation.

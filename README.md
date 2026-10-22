@@ -13,7 +13,7 @@ By Mitovoid AI · contact: mitovoid.contact@gmail.com
 
 ## Android and iOS apps
 
-The same game ships as native apps through Capacitor, with AdMob ads and a RevenueCat "Remove Ads" purchase. See [MOBILE.md](MOBILE.md) for building, ad and purchase setup, and store release steps.
+The same game ships as native apps through Capacitor, with AdMob ads and Castle Cascade Pro (no between-level ads; lifetime, yearly or monthly) through RevenueCat. See [MOBILE.md](MOBILE.md) for building, ad and purchase setup, and store release steps.
 
 ## Website (`docs/`)
 
