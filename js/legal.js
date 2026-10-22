@@ -12,8 +12,8 @@
     email: 'mitovoid.contact@gmail.com',            // support / privacy contact, e.g. "support@yourgame.com"
     country: 'India',          // governing law, e.g. "India"
     updated: '22 October 2026',
-    ads: false,           // true once the app shows ads (e.g. Google AdMob)
-    purchases: false,     // true once the app sells items through Google Play
+    ads: true,            // the iOS/Android apps show AdMob ads (the web version never does)
+    purchases: true,      // the apps sell a one-time "Remove Ads" via the stores + RevenueCat
     cloudSave: true,      // the web version can save progress to the player's signed-in account
     minAge: 13,
   };
@@ -33,8 +33,8 @@
       list([
         'You do not need an account, and we never ask for your email, phone number or real name.',
         'Your progress is saved on your own device.',
-        c.ads ? 'The game shows ads from Google AdMob, which uses device information to show and measure ads (details below).' : 'The game shows no ads.',
-        c.purchases ? 'Purchases are handled by Google Play; we never see your payment details.' : 'The game sells nothing.',
+        c.ads ? 'The iOS and Android apps show ads from Google AdMob, which uses device information to show and measure ads (details below). The web version shows no ads.' : 'The game shows no ads.',
+        c.purchases ? 'In the apps you can buy “Remove Ads”. Payment is handled by Google Play or the App Store and recorded with RevenueCat; we never see your payment details.' : 'The game sells nothing.',
         'We do not sell your information.',
       ]),
       '<h3>What the game stores</h3>',
@@ -45,19 +45,19 @@
       ]),
       '<p>This is kept in your device’s storage for the game. It stays there until you reset your progress or remove the game.</p>',
       c.cloudSave ? '<p><b>Cloud save (web version):</b> if you play on a website while signed in to an account with that service, your progress is also saved to that account under an anonymous ID, so it follows you to other devices. It holds only the game progress listed above.</p>' : '',
-      c.ads ? '<h3>Advertising</h3><p>We use Google AdMob to show ads. To serve, limit and measure ads, AdMob may collect your device’s advertising ID, IP address, approximate location (from the IP address), device and app information, and how you interact with ads. Where the law requires it (for example in the EEA, the UK and Switzerland), you are asked for consent before personalised ads are shown, and you can change that choice from the game’s settings. You can also reset or delete your advertising ID in your device settings. Google’s use of this data is described at <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>.</p>' : '',
-      c.purchases ? '<h3>Purchases</h3><p>Purchases are processed by Google Play. We receive a confirmation that a purchase happened so we can deliver it; we never receive your card or bank details. Google’s privacy policy applies to the payment.</p>' : '',
+      c.ads ? '<h3>Advertising</h3><p>The iOS and Android apps use Google AdMob to show ads: optional ads you choose to watch for a reward, and occasional ads between levels. To serve, limit and measure ads, AdMob may collect your device’s advertising ID, IP address, approximate location (from the IP address), device and app information, and how you interact with ads. Where the law requires it (for example in the EEA, the UK and Switzerland), you are asked for consent before personalised ads are shown, and you can change that choice in <b>Settings → Ad privacy choices</b>. On iPhone and iPad the app asks your permission before using your device’s advertising identifier; if you say no, you still see ads, just less personalised ones. You can also reset or delete your advertising ID in your device settings. Google’s use of this data is described at <a href="https://policies.google.com/technologies/partner-sites">policies.google.com/technologies/partner-sites</a>.</p>' : '',
+      c.purchases ? '<h3>Purchases</h3><p>Purchases in the apps are processed by Google Play (Android) or Apple’s App Store (iOS). We use RevenueCat to confirm and record purchases so that “Remove Ads” can be restored on a new device. RevenueCat receives an anonymous app user ID, your purchase history, your device type and the highest level you have reached in the game, which helps us understand which players buy. We never receive your card or bank details. The store’s privacy policy applies to the payment, and RevenueCat’s is at <a href="https://www.revenuecat.com/privacy">revenuecat.com/privacy</a>.</p>' : '',
       '<h3>What we do not collect</h3>',
       '<p>The game does not access your contacts, photos, camera, microphone, precise location or files, and it does not track you across other apps or websites' + (c.ads ? ' beyond what the ad provider described above does' : '') + '.</p>',
       '<h3>How the information is used</h3>',
       list([
         'To run the game and remember your progress.',
         c.ads ? 'To show ads and keep their frequency reasonable.' : '',
-        c.purchases ? 'To deliver and restore what you buy.' : '',
+        c.purchases ? 'To deliver and restore what you buy, and to understand which players buy.' : '',
         'To answer you if you contact us.',
       ]),
       '<h3>Sharing</h3>',
-      '<p>We do not sell or rent your information. It is shared only with the services that make the game work' + (c.ads ? ' (Google AdMob for ads' + (c.purchases ? ', Google Play for purchases' : '') + ')' : c.purchases ? ' (Google Play for purchases)' : '') + ', or when the law requires it.</p>',
+      '<p>We do not sell or rent your information. It is shared only with the services that make the game work' + (c.ads ? ' (Google AdMob for ads' + (c.purchases ? '; Google Play, Apple and RevenueCat for purchases' : '') + ')' : c.purchases ? ' (Google Play, Apple and RevenueCat for purchases)' : '') + ', or when the law requires it.</p>',
       '<h3>Keeping and deleting your data</h3>',
       '<p>Open <b>Settings → Reset progress</b> to erase your saved game' + (c.cloudSave ? ', including the cloud copy' : '') + '. Removing the game or clearing its storage also deletes it. If you want us to delete anything else, email ' + mail() + '.</p>',
       '<h3>Children</h3>',
@@ -82,7 +82,7 @@
       '<p>We give you a personal, non-exclusive, non-transferable and revocable licence to play the game for your own entertainment. You may not sell, rent, copy or redistribute the game, or use it commercially.</p>',
       '<h3>Virtual items</h3>',
       '<p>Coins, stars, lives, boosters and other in-game items have no real-world value. They cannot be exchanged for money or anything outside the game, and they cannot be transferred to other people. We may change how they work or how many you receive in order to balance the game.</p>',
-      c.purchases ? '<h3>Purchases</h3><p>Purchases are made through Google Play and are subject to Google Play’s terms and refund policy. Purchased items are delivered to the game on your device; reinstalling may require “Restore purchases”. Prices are shown in the store before you buy.' + (c.ads ? ' “Remove Ads” removes banner and between-level ads; optional ads you choose to watch for a reward stay available.' : '') + '</p>' : '',
+      c.purchases ? '<h3>Purchases</h3><p>Purchases are made through Google Play or Apple’s App Store and are subject to that store’s terms and refund policy. Purchased items are delivered to the game on your device; after reinstalling or changing device, use <b>Settings → Restore purchases</b>. Prices are shown in the store before you buy.' + (c.ads ? ' “Remove Ads” removes banner and between-level ads; optional ads you choose to watch for a reward stay available.' : '') + '</p>' : '',
       c.ads ? '<h3>Advertising</h3><p>The game shows ads provided by third parties. We are not responsible for the content of those ads or the websites they lead to. Rewarded ads are always optional.</p>' : '',
       '<h3>Fair play</h3>',
       '<p>Do not cheat, hack, modify the game or its save data, exploit bugs, or reverse engineer the game. We may reset progress that was gained this way.</p>',

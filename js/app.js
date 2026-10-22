@@ -408,6 +408,56 @@
     );
   }
 
+  // ---------- native apps: ads & purchases ----------
+  // window.CCNative exists only inside the iOS/Android apps (src/native.js);
+  // on the web every ad or purchase control below simply does not render.
+
+  const native = () => window.CCNative || null;
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const AD_ICON = '<svg class="adic" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13l11-6.5z"/></svg>';
+  function rewardButton(act, label) {
+    const n = native();
+    return n && n.canReward() ? '<button class="btn purple adbtn" data-act="' + act + '">' + AD_ICON + label + '</button>' : '';
+  }
+  function removeAdsLink() {
+    const n = native();
+    if (!n || n.state.noAds || !n.state.canBuy || !n.state.adsOn) return '';
+    return '<button class="linkbtn" data-act="noads">Remove ads · ' + esc(n.state.price) + '</button>';
+  }
+  // Game sounds stay silent while an ad plays.
+  async function withAdAudio(fn) {
+    Sfx.setEnabled(false);
+    try { return await fn(); } finally { Sfx.setEnabled(S.sound); }
+  }
+  async function watchRewarded() {
+    const n = native();
+    if (!n) return false;
+    const ok = await withAdAudio(() => n.showRewarded());
+    if (!ok) toast('Watch the whole ad to get the reward.');
+    return ok;
+  }
+  // A between-level ad may play as the player leaves a finished level.
+  async function leaveLevel(levelN, next) {
+    closeModal();
+    const n = native();
+    if (n) await withAdAudio(() => n.afterLevel(levelN));
+    next();
+  }
+  async function buyNoAds() {
+    const n = native();
+    if (!n) return;
+    const r = await n.buyNoAds();
+    if (r === 'ok') { Sfx.chest(); Confetti.burst(70); toast('Ads removed. Thank you for supporting the game!'); }
+    else if (r === 'pending') toast('Purchase pending. Ads disappear as soon as it completes.');
+    else if (r === 'unavailable' || r === 'error') toast('The store is not available right now. Try again later.');
+  }
+  async function restorePurchases() {
+    const n = native();
+    if (!n) return;
+    const r = await n.restore();
+    toast(r === 'ok' ? 'Purchases restored. Ads are off.' : r === 'none' ? 'No purchases found for this store account.' : 'The store is not available right now. Try again later.');
+  }
+
   // ---------- home ----------
 
   let screen = 'home';
@@ -618,6 +668,19 @@
     );
   }
 
+  // Settings rows for the app stores; empty on the web.
+  function shopRows() {
+    const n = native();
+    if (!n) return '';
+    const st = n.state;
+    const remove = st.noAds ? '<div class="row static"><span>Ads removed</span><b aria-hidden="true">✓</b></div>'
+      : st.canBuy ? '<button class="row" data-act="noads"><span>Remove ads</span><b class="price">' + esc(st.price) + '</b></button>' : '';
+    return '<div class="rows">' + remove +
+      '<button class="row" data-act="restore"><span>Restore purchases</span><b aria-hidden="true">›</b></button>' +
+      (st.privacyChoices ? '<button class="row" data-act="adprivacy"><span>Ad privacy choices</span><b aria-hidden="true">›</b></button>' : '') +
+      '</div>';
+  }
+
   function openSettings(inGame) {
     const acts = {
       sound: () => { S.sound = !S.sound; Sfx.setEnabled(S.sound); save(); openSettings(inGame); },
@@ -625,6 +688,9 @@
       privacy: () => openLegal('privacy'),
       terms: () => openLegal('terms'),
       credits: () => openLegal('credits'),
+      noads: () => buyNoAds().then(() => openSettings(inGame)),
+      restore: () => restorePurchases().then(() => openSettings(inGame)),
+      adprivacy: () => { const n = native(); if (n) n.privacyChoices(); },
       close: closeModal,
       reset: (b) => {
         if (b.dataset.armed) { try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } S = fresh(); save(); closeModal(); renderHome(); toast('Progress reset'); return; }
@@ -652,6 +718,7 @@
       '<button class="row" data-act="terms"><span>Terms of Service</span><b aria-hidden="true">›</b></button>' +
       '<button class="row" data-act="credits"><span>Credits & Licences</span><b aria-hidden="true">›</b></button>' +
       '</div>' +
+      shopRows() +
       (inGame ? '<button class="btn green big" data-act="close" data-focus>Resume</button><button class="btn ghost" data-act="quit">Quit level</button>'
         : '<button class="btn purple" data-act="close" data-focus>Done</button><button class="btn ghost danger" data-act="reset">Reset progress and delete my data</button>') +
       '<p class="fine">Level ' + fmtN(S.level) + (S.level <= LV.LEVEL_COUNT ? ' of ' + fmtN(LV.LEVEL_COUNT) : ' · endless levels') + ' · ' + fmtN(S.wins) + ' wins</p>',
@@ -673,9 +740,21 @@
       '<div class="chestwrap">' + icon('heart', 'chestimg dim') + '</div>' +
       '<p class="sub">Next life in <b id="lifeWait">' + fmtTime(LIFE_MS - (Date.now() - S.lifeTs)) + '</b></p>' +
       '<button class="btn gold big" data-act="refill" data-focus>Refill 5 lives <span class="cost">' + icon('coin', 'ic sm') + REFILL_PRICE + '</span></button>' +
+      rewardButton('adLife', 'Watch an ad: +1 life') +
       '<button class="btn ghost" data-act="close">Wait</button>',
       {
         close: () => { clearInterval(timer); closeModal(); },
+        adLife: async () => {
+          if (!(await watchRewarded())) return;
+          tickLives();
+          S.lives = Math.min(MAX_LIVES, S.lives + 1);
+          save();
+          clearInterval(timer);
+          closeModal();
+          renderHome();
+          Sfx.coin();
+          toast('+1 life');
+        },
         refill: () => {
           if (S.coins < REFILL_PRICE) { toast('Not enough coins yet. Lives refill on their own every 30 minutes.'); return; }
           S.coins -= REFILL_PRICE;
@@ -709,7 +788,7 @@
           '<h3>' + INFO[b].name + '</h3><p class="sub">' + INFO[b].desc + '</p>' +
           '<div class="rtiles">' + rewardTiles({ [b]: 3 }) + '</div>' +
           '<button class="btn green big" data-act="ok" data-focus>Awesome</button>',
-          { ok: () => openLevelStart() }
+          { ok: () => openLevelStart(), back: () => openLevelStart() }
         );
         Sfx.special();
         return;
@@ -748,6 +827,7 @@
           }
           openLevelStart();
         },
+        back: closeModal,
         play: () => {
           const chosen = PRE.filter((b) => preSel[b] && S.inv[b] > 0);
           for (const b of chosen) S.inv[b]--;
@@ -764,7 +844,7 @@
 
   // ---------- gameplay ----------
 
-  let game = null, level = null, busy = false, extraBuys = 0, activeBooster = null, shownGoals = [], hintTimer = 0;
+  let game = null, level = null, busy = false, extraBuys = 0, activeBooster = null, shownGoals = [], hintTimer = 0, adMovesUsed = false;
   const view = new window.CCBoard($('#board'), {
     canInput: () => !busy && game && game.status === 'play',
     onSwap: (a, b) => {
@@ -839,6 +919,7 @@
     level = LV.getLevel(n);
     game = new E.Game(level, { boosters });
     extraBuys = 0;
+    adMovesUsed = false;
     activeBooster = null;
     busy = true;
     S.plays++;
@@ -1007,6 +1088,7 @@
     save();
     showWin({ n, kind, base, bonusCoins, coins, coinsBefore, chestFull });
     checkAchievements();
+    if (native()) native().track(S.level);
   }
 
   function showWin(w) {
@@ -1026,15 +1108,30 @@
       '<p class="next">Next: Level ' + fmtN(w.n + 1) + (nextKind ? ' · <b class="k' + nextKind + '">' + kindName(nextKind) + '</b>' : '') + '</p>' +
       (w.chestFull ? '<button class="btn gold big pulse" data-act="chest" data-focus>Open level chest</button>'
         : '<button class="btn green big pulse" data-act="next" data-focus>Next level ▸</button>') +
-      '<button class="btn ' + (canBuild ? 'gold' : 'ghost') + '" data-act="home">' + (canBuild ? 'Build in your kingdom ★' : 'Kingdom') + '</button>',
+      '<button class="btn ' + (canBuild ? 'gold' : 'ghost') + '" data-act="home">' + (canBuild ? 'Build in your kingdom ★' : 'Kingdom') + '</button>' +
+      rewardButton('adDouble', 'Watch an ad: double coins (+' + fmtN(w.coins) + ')') +
+      removeAdsLink(),
       {
-        next: () => { closeModal(); game = null; show('home'); openLevelStart(); },
-        home: () => { closeModal(); game = null; show('home'); },
+        next: () => leaveLevel(w.n, () => { game = null; show('home'); openLevelStart(); }),
+        home: () => leaveLevel(w.n, () => { game = null; show('home'); }),
+        back: () => leaveLevel(w.n, () => { game = null; show('home'); }),
         chest: () => {
           S.chest = 0;
           save();
-          openChest('Level chest!', 'Ten wins in the bag. Open it up!', rollChest(false), () => { game = null; show('home'); openLevelStart(); });
+          openChest('Level chest!', 'Ten wins in the bag. Open it up!', rollChest(false), () => leaveLevel(w.n, () => { game = null; show('home'); openLevelStart(); }));
         },
+        adDouble: async (btn) => {
+          if (!(await watchRewarded())) return;
+          S.coins += w.coins;
+          S.stats.coinsEarned += w.coins;
+          save();
+          Sfx.coin();
+          const el = $('#winCoins');
+          if (el) animateNumber(el, w.coins, w.coins * 2, 700);
+          btn.remove();
+          toast('Coins doubled: +' + fmtN(w.coins));
+        },
+        noads: buyNoAds,
       },
       'win'
     );
@@ -1047,6 +1144,15 @@
     return '<div class="goalrow">' + game.goals.filter((g) => g.left > 0).map((g) => '<div class="g">' + icon(goalIcon(g), 'ic lg') + '<b>' + g.left + '</b><small>' + goalLabel(g) + '</small></div>').join('') + '</div>';
   }
 
+  async function keepPlaying() {
+    closeModal();
+    game.addMoves(5);
+    renderMoves();
+    await view.play(game.takeEvents());
+    busy = false;
+    armHint();
+  }
+
   function onOutOfMoves() {
     busy = true;
     const price = EXTRA_MOVES_PRICE[Math.min(extraBuys, EXTRA_MOVES_PRICE.length - 1)];
@@ -1055,6 +1161,7 @@
       '<div class="ribbon red">Out of moves!</div>' +
       '<p class="sub">' + (total <= 5 ? 'So close! Only ' + total + ' left:' : 'You still need:') + '</p>' + remainingHtml() +
       '<button class="btn gold big pulse" data-act="more" data-focus>+5 moves <span class="cost">' + icon('coin', 'ic sm') + fmtN(price) + '</span></button>' +
+      (adMovesUsed ? '' : rewardButton('adMoves', 'Watch an ad: +5 moves')) +
       '<button class="btn ghost" data-act="quit">Give up</button>' +
       '<p class="fine">Giving up costs a life' + (S.streak > 0 ? ' and ends your ' + S.streak + '-win streak' : '') + '.</p>',
       {
@@ -1064,12 +1171,12 @@
           extraBuys++;
           save();
           Sfx.coin();
-          closeModal();
-          game.addMoves(5);
-          renderMoves();
-          await view.play(game.takeEvents());
-          busy = false;
-          armHint();
+          await keepPlaying();
+        },
+        adMoves: async () => {
+          if (!(await watchRewarded())) return;
+          adMovesUsed = true;
+          await keepPlaying();
         },
         quit: () => {
           loseLife();
@@ -1078,6 +1185,8 @@
           Sfx.lose();
           showFail();
         },
+        // The back button must not quietly cost a life here.
+        back: () => {},
       }
     );
   }
@@ -1085,6 +1194,7 @@
   function showFail() {
     tickLives();
     const lives = unlimited() ? '∞' : S.lives;
+    const n = level.n;
     showModal(
       '<div class="ribbon red">Level failed</div>' +
       '<div class="chestwrap">' + icon('heart', 'chestimg dim') + '</div>' +
@@ -1092,8 +1202,9 @@
       '<button class="btn green big" data-act="retry" data-focus>Try again</button>' +
       '<button class="btn ghost" data-act="home">Kingdom</button>',
       {
-        retry: () => { closeModal(); game = null; show('home'); openLevelStart(); },
-        home: () => { closeModal(); game = null; show('home'); },
+        retry: () => leaveLevel(n, () => { game = null; show('home'); openLevelStart(); }),
+        home: () => leaveLevel(n, () => { game = null; show('home'); }),
+        back: () => leaveLevel(n, () => { game = null; show('home'); }),
       }
     );
   }
@@ -1138,6 +1249,24 @@
   $('#game').addEventListener('pointerdown', () => { if (view.speed > 1 && view.speed < 4) view.speed = 4; });
   window.addEventListener('resize', () => { if (screen === 'game') layoutGame(); });
   setInterval(() => { if (screen === 'home') renderTop(); }, 1000);
+
+  // Android back button: close the top layer; on the home screen the app minimises.
+  function handleBack() {
+    if (!$('#legalView').hidden) { closeLegal(); return true; }
+    if (!$('#modal').hidden) {
+      const fn = modalActs.back || modalActs.close;
+      if (fn) fn();
+      return true;
+    }
+    if (screen === 'profile') { show('home'); return true; }
+    if (screen === 'game') { if (!busy) openSettings(true); return true; }
+    return false;
+  }
+  if (native()) {
+    native().onBack(handleBack);
+    native().onPause(() => Sfx.setEnabled(false));
+    native().onResume(() => Sfx.setEnabled(S.sound));
+  }
 
   // Debug jump for playtesting: open the page with #lv250 to play level 250.
   const jump = /^#lv(\d+)$/.exec(location.hash);
@@ -1262,6 +1391,8 @@
         const home = $('#home');
         home.classList.add('enter');
         setTimeout(() => home.classList.remove('enter'), 1400);
+        // Consent form and ad loading wait until the player is past the intro.
+        if (native()) native().start();
       }, reduced ? 50 : 620);
     });
   }
