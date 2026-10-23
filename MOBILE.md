@@ -79,6 +79,18 @@ Settings in the app includes **Restore purchases**, which Apple requires. Both s
 
 No Mac? Cloud Macs work too: GitHub Actions `macos` runners, Codemagic or Ionic Appflow can build and upload the same `ios/` project.
 
+## Releasing a new APK on the website
+
+The website's **Download APK** button serves `docs/download/castle-cascade.apk`. A GitHub Action (`.github/workflows/publish-apk-to-website.yml`) keeps it current:
+
+1. Raise `versionCode` and `versionName` in `android/app/build.gradle`.
+2. Build the signed APK on your computer:
+   `npm run sync`, then in `android/`: `gradlew assembleRelease` with `CC_KEYSTORE_PROPERTIES` pointing at your `keystore.properties` and `JAVA_HOME` at Java 21.
+3. Create a GitHub Release with a tag like `v1.1.0` and attach `android/app/build/outputs/apk/release/app-release.apk` renamed to `castle-cascade.apk`.
+4. When the Release is published, the Action copies the APK to the website, updates the version and size text, and pushes to `main`; Vercel redeploys within a minute. Pre-releases are skipped. To re-run it for an existing tag: Actions → Publish APK to website → Run workflow.
+
+Always sign with the same key (`castle-cascade-release.jks`), or phones with the old version cannot install the update.
+
 ## Before every release
 
 - [ ] `testAds: false` with real AdMob IDs, `npm run sync`

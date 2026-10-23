@@ -1,0 +1,67 @@
+# Copies the APK from a published GitHub Release onto the website
+# (docs/download/castle-cascade.apk), updates the version and size shown in the
+# download section, and pushes to main. Vercel and GitHub Pages then redeploy.
+#
+# The APK itself is still built and signed on your own computer and attached
+# to the Release; this workflow never sees the signing key.
+
+name: Publish APK to website
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, for example v1.1.0
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-apk
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Pre-releases stay off the website.
+    if: github.event_name == 'workflow_dispatch' || !github.event.release.prerelease
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download the APK from the release
+        run: |
+          mkdir -p /tmp/apk
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.apk' --dir /tmp/apk
+          # Prefer castle-cascade.apk if the release has several APKs.
+          if [ -f /tmp/apk/castle-cascade.apk ]; then apk=/tmp/apk/castle-cascade.apk; else apk=$(ls /tmp/apk/*.apk | head -n 1); fi
+          [ -n "$apk" ] || { echo "::error::Release $TAG has no .apk file attached"; exit 1; }
+          # An APK is a zip file: refuse anything else.
+          head -c 2 "$apk" | grep -q PK || { echo "::error::$apk is not an APK"; exit 1; }
+          echo "APK=$apk" >> "$GITHUB_ENV"
+
+      - name: Put it on the website
+        run: |
+          version="${TAG#v}"
+          size_mb=$(( ($(stat -c %s "$APK") + 524288) / 1048576 ))
+          cp "$APK" docs/download/castle-cascade.apk
+          for f in site/index.html docs/index.html; do
+            sed -i -E "s/Version [0-9][0-9A-Za-z.+-]*/Version ${version}/; s/about [0-9]+ MB/about ${size_mb} MB/" "$f"
+          done
+          echo "Version $version, about $size_mb MB"
+
+      - name: Commit and push
+        run: |
+          if git diff --quiet; then echo "Website already has $TAG; nothing to do."; exit 0; fi
+          # Authored as the repo owner so Vercel accepts the deployment.
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -a --author="ASHUTOSH ROY <92113396+ashutoshroy02@users.noreply.github.com>" \
+            -m "Publish Android $TAG on the website"
+          git push origin HEAD:main
