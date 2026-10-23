@@ -13,3 +13,4 @@ builds/
 *.aab
 android/keystore.properties
 android/.kotlin/
+!docs/download/*.apk
