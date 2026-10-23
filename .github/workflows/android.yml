@@ -1,0 +1,189 @@
+# Builds, signs and publishes the Android app.
+#
+#   Push to main / pull request  -> test APK (Google test ads, RevenueCat Test
+#                                   Store), downloadable from the run's Artifacts.
+#   Push a tag v1.2.3            -> signed release APK, GitHub Release, website
+#                                   download updated, Vercel redeploys.
+#   Push a tag v1.2.3-rc1        -> signed APK as a GitHub pre-release only
+#                                   (a dry run: the website is not touched).
+#   Release published by hand    -> its attached APK is put on the website.
+#   Actions -> Android -> Run workflow -> a test APK from any branch.
+#
+# Release signing needs these repository secrets:
+#   CC_KEYSTORE_BASE64   the .jks file, base64-encoded
+#   CC_KEYSTORE_PASSWORD its store password
+#   CC_KEY_PASSWORD      its key password
+#   CC_KEY_ALIAS         its key alias (castlecascade)
+
+name: Android
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths-ignore: ['docs/**', 'site/**', '*.md']
+  pull_request:
+    paths-ignore: ['docs/**', 'site/**', '*.md']
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+jobs:
+  build:
+    if: github.event_name != 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    outputs:
+      release: ${{ steps.mode.outputs.release }}
+      prerelease: ${{ steps.mode.outputs.prerelease }}
+      version: ${{ steps.mode.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decide what to build
+        id: mode
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tag="${GITHUB_REF#refs/tags/}"
+            version="${tag#v}"
+            [[ "$version" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)(-.+)?$ ]] || { echo "::error::Tag $tag is not vMAJOR.MINOR.PATCH"; exit 1; }
+            # 1.2.3 -> 10203. Always grows with the version, as Android requires.
+            code=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + BASH_REMATCH[3] ))
+            echo "release=true" >> "$GITHUB_OUTPUT"
+            [[ -n "${BASH_REMATCH[4]}" ]] && echo "prerelease=true" >> "$GITHUB_OUTPUT" || echo "prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "code=$code" >> "$GITHUB_OUTPUT"
+            echo "Release build $version (versionCode $code)"
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "version=test-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+            echo "Test build"
+          fi
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Build the game and sync it into Android
+        env:
+          CC_TEST_BUILD: ${{ steps.mode.outputs.release == 'true' && '0' || '1' }}
+        run: |
+          node tools/build.js
+          npx cap sync android
+          chmod +x android/gradlew
+
+      - name: Load the signing key
+        if: steps.mode.outputs.release == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.CC_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.CC_KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.CC_KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.CC_KEY_ALIAS }}
+        run: |
+          [ -n "$KEYSTORE_BASE64" ] || { echo "::error::The CC_KEYSTORE_BASE64 secret is missing"; exit 1; }
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=${KEY_ALIAS:-castlecascade}"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > "$RUNNER_TEMP/keystore.properties"
+          echo "CC_KEYSTORE_PROPERTIES=$RUNNER_TEMP/keystore.properties" >> "$GITHUB_ENV"
+
+      - name: Build the APK
+        working-directory: android
+        run: |
+          if [ "${{ steps.mode.outputs.release }}" = true ]; then
+            ./gradlew assembleRelease --no-daemon --console=plain \
+              -PccVersionName=${{ steps.mode.outputs.version }} -PccVersionCode=${{ steps.mode.outputs.code }}
+            cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/castle-cascade.apk"
+          else
+            ./gradlew assembleDebug --no-daemon --console=plain
+            cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/castle-cascade.apk"
+          fi
+
+      - name: Check the APK
+        run: |
+          apk="$RUNNER_TEMP/castle-cascade.apk"
+          bt="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)"
+          "$bt/aapt2" dump badging "$apk" | grep -E "^package|targetSdkVersion"
+          unzip -p "$apk" assets/public/native.js > "$RUNNER_TEMP/native.js"
+          if [ "${{ steps.mode.outputs.release }}" = true ]; then
+            "$bt/apksigner" verify --print-certs "$apk" | grep -E "certificate (DN|SHA-256)"
+            # The release must show real ads and never use the Test Store.
+            if grep -q "testAds=!0\|useTestStore=!0" "$RUNNER_TEMP/native.js"; then echo "::error::Release build contains test settings"; exit 1; fi
+            grep -q "testAds:!1" "$RUNNER_TEMP/native.js" || { echo "::error::testAds is not off in src/config.js"; exit 1; }
+          else
+            grep -q "testAds=!0" "$RUNNER_TEMP/native.js" || { echo "::error::Test build is missing test ads"; exit 1; }
+          fi
+          rm -f "$RUNNER_TEMP/release.jks" "$RUNNER_TEMP/keystore.properties"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: castle-cascade-${{ steps.mode.outputs.version }}
+          path: ${{ runner.temp }}/castle-cascade.apk
+          retention-days: 14
+
+  # A tag push: create the GitHub Release and, unless it is a pre-release, update the website.
+  release:
+    needs: build
+    if: needs.build.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.build.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: castle-cascade-${{ needs.build.outputs.version }}
+          path: ${{ runner.temp }}/apk
+
+      - name: Create the GitHub Release
+        run: |
+          flags=(--title "Castle Cascade $VERSION for Android" --generate-notes)
+          [ "${{ needs.build.outputs.prerelease }}" = true ] && flags+=(--prerelease) || flags+=(--latest)
+          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP/apk/castle-cascade.apk" --verify-tag "${flags[@]}"
+
+      - name: Put it on the website
+        if: needs.build.outputs.prerelease != 'true'
+        run: bash tools/publish-website-apk.sh "$RUNNER_TEMP/apk/castle-cascade.apk" "$VERSION"
+
+  # A release made by hand on GitHub (APK built elsewhere): put its APK on the website.
+  website:
+    if: github.event_name == 'release' && !github.event.release.prerelease
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Put the release APK on the website
+        run: |
+          mkdir -p "$RUNNER_TEMP/apk"
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.apk' --dir "$RUNNER_TEMP/apk"
+          apk="$RUNNER_TEMP/apk/castle-cascade.apk"
+          [ -f "$apk" ] || apk=$(ls "$RUNNER_TEMP"/apk/*.apk | head -n 1)
+          bash tools/publish-website-apk.sh "$apk" "$TAG"

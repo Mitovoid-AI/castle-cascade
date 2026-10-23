@@ -14,6 +14,13 @@ import { Purchases, PURCHASES_ERROR_CODE } from '@revenuecat/purchases-capacitor
 import { RevenueCatUI, PAYWALL_RESULT } from '@revenuecat/purchases-capacitor-ui';
 import CONFIG from './config.js';
 
+// Set by tools/build.js when CC_TEST_BUILD=1.
+/* global __CC_TEST_BUILD__ */
+if (__CC_TEST_BUILD__) {
+  CONFIG.testAds = true;
+  CONFIG.revenuecat.useTestStore = true;
+}
+
 if (Capacitor.isNativePlatform()) {
   const platform = Capacitor.getPlatform();
   const ids = CONFIG.admob[platform];

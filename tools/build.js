@@ -40,7 +40,10 @@ for (const f of fs.readdirSync(path.join(root, 'assets', 'fonts'))) app('fonts/'
 const bundle = require('esbuild').buildSync({
   entryPoints: [path.join(root, 'src', 'native.js')],
   bundle: true, format: 'iife', minify: true, target: ['chrome89', 'safari15'], write: false,
+  // CC_TEST_BUILD=1 makes a test build: Google test ads and the RevenueCat Test Store.
+  define: { __CC_TEST_BUILD__: process.env.CC_TEST_BUILD === '1' ? 'true' : 'false' },
 });
+if (process.env.CC_TEST_BUILD === '1') console.log('test build: Google test ads, RevenueCat Test Store');
 app('native.js', bundle.outputFiles[0].text);
 
 // Landing page and the icon code it uses.

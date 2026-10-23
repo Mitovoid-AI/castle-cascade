@@ -14,8 +14,9 @@ android {
         applicationId "com.mitovoid.castlecascade"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        // CI passes -PccVersionName=1.2.3 (from the git tag) and -PccVersionCode.
+        versionCode((project.findProperty('ccVersionCode') ?: '1') as int)
+        versionName project.findProperty('ccVersionName') ?: "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
