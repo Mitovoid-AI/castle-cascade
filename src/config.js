@@ -27,11 +27,11 @@ export default {
   // simulates purchases, so no Play or App Store setup is needed to try them.
   // Never release with it: set useTestStore: false and fill in the store keys.
   revenuecat: {
-    // false + placeholder store keys = no purchase buttons (the public APK on
-    // GitHub, where Google Play billing is not available).
+    // Pro is only offered when the store has products in the current offering,
+    // so until they exist in Play Console the buttons stay hidden.
     useTestStore: false,
     testStore: 'test_ZQRBYdTtYfqrvxnSXbykdNCVnxt',
-    android: 'goog_REPLACE_WITH_YOUR_KEY',
+    android: 'goog_QQuQGioGWDeRTnPNPbPrLhPcjGK',
     ios: 'appl_REPLACE_WITH_YOUR_KEY',
   },
   // Entitlement for Castle Cascade Pro (no between-level ads). Attach the
