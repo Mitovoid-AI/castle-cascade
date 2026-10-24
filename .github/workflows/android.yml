@@ -111,9 +111,11 @@ jobs:
         working-directory: android
         run: |
           if [ "${{ steps.mode.outputs.release }}" = true ]; then
-            ./gradlew assembleRelease --no-daemon --console=plain \
+            # The APK is for the website; the AAB (Android App Bundle) is what Google Play takes.
+            ./gradlew assembleRelease bundleRelease --no-daemon --console=plain \
               -PccVersionName=${{ steps.mode.outputs.version }} -PccVersionCode=${{ steps.mode.outputs.code }}
             cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/castle-cascade.apk"
+            cp app/build/outputs/bundle/release/app-release.aab "$RUNNER_TEMP/castle-cascade.aab"
           else
             ./gradlew assembleDebug --no-daemon --console=plain
             cp app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/castle-cascade.apk"
@@ -127,6 +129,8 @@ jobs:
           unzip -p "$apk" assets/public/native.js > "$RUNNER_TEMP/native.js"
           if [ "${{ steps.mode.outputs.release }}" = true ]; then
             "$bt/apksigner" verify --print-certs "$apk" | grep -E "certificate (DN|SHA-256)"
+            # The bundle must be signed with the same key (jarsigner comes with the JDK).
+            jarsigner -verify "$RUNNER_TEMP/castle-cascade.aab" | grep -q "jar verified" || { echo "::error::The AAB is not signed"; exit 1; }
             # The release must show real ads and never use the Test Store.
             if grep -q "testAds=!0\|useTestStore=!0" "$RUNNER_TEMP/native.js"; then echo "::error::Release build contains test settings"; exit 1; fi
             grep -q "testAds:!1" "$RUNNER_TEMP/native.js" || { echo "::error::testAds is not off in src/config.js"; exit 1; }
@@ -138,7 +142,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: castle-cascade-${{ steps.mode.outputs.version }}
-          path: ${{ runner.temp }}/castle-cascade.apk
+          path: ${{ runner.temp }}/castle-cascade.a*
           retention-days: 14
 
   # A tag push: create the GitHub Release and, unless it is a pre-release, update the website.
@@ -163,7 +167,7 @@ jobs:
         run: |
           flags=(--title "Castle Cascade $VERSION for Android" --generate-notes)
           [ "${{ needs.build.outputs.prerelease }}" = true ] && flags+=(--prerelease) || flags+=(--latest)
-          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP/apk/castle-cascade.apk" --verify-tag "${flags[@]}"
+          gh release create "$GITHUB_REF_NAME" "$RUNNER_TEMP/apk/castle-cascade.apk" "$RUNNER_TEMP/apk/castle-cascade.aab" --verify-tag "${flags[@]}"
 
       - name: Put it on the website
         if: needs.build.outputs.prerelease != 'true'

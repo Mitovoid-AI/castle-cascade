@@ -14,3 +14,4 @@ builds/
 android/keystore.properties
 android/.kotlin/
 !docs/download/*.apk
+dist-gamemonetize/

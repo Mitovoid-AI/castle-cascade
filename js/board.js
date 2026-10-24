@@ -50,7 +50,8 @@
       const loop = (now) => {
         const dt = Math.min(50, now - last);
         last = now;
-        if (!this.hidden) {
+        // A portal ad (window.CCPortal) pauses all board animation.
+        if (!this.hidden && !(root.CCPortal && root.CCPortal.paused)) {
           this.step(dt);
           this.draw();
         }

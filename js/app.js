@@ -441,7 +441,19 @@
     closeModal();
     const n = native();
     if (n) await withAdAudio(() => n.afterLevel(levelN));
+    if (!(await portalBreak('levelEnd'))) return;
     next();
+  }
+  // Web game portals (window.CCPortal exists only in portal builds) may show an
+  // ad at a natural break. If the screen changed while the ad played, the action
+  // that waited for it is dropped. Resolves true when the action should go ahead.
+  let navToken = 0;
+  async function portalBreak(where) {
+    const p = window.CCPortal;
+    if (!p) return true;
+    const t = ++navToken;
+    await p.adBreak(where);
+    return t === navToken;
   }
   async function buyNoAds() {
     const n = native();
@@ -471,6 +483,7 @@
   let screen = 'home';
   function show(which) {
     screen = which;
+    navToken++;
     $('#home').hidden = which !== 'home';
     $('#game').hidden = which !== 'game';
     $('#profile').hidden = which !== 'profile';
@@ -840,7 +853,8 @@
           openLevelStart();
         },
         back: closeModal,
-        play: () => {
+        play: async () => {
+          if (!(await portalBreak('levelStart'))) return;
           const chosen = PRE.filter((b) => preSel[b] && S.inv[b] > 0);
           for (const b of chosen) S.inv[b]--;
           S.stats.boosters += chosen.length;
@@ -1278,6 +1292,9 @@
     native().onBack(handleBack);
     native().onPause(() => Sfx.setEnabled(false));
     native().onResume(() => Sfx.setEnabled(S.sound));
+  }
+  if (window.CCPortal) {
+    window.CCPortal.connect({ pause: () => Sfx.setEnabled(false), resume: () => Sfx.setEnabled(S.sound) });
   }
 
   // Debug jump for playtesting: open the page with #lv250 to play level 250.
