@@ -246,7 +246,7 @@
       this.cv.addEventListener('pointercancel', () => { this.drag = null; });
     }
 
-    showHint(m) { this.hint = m ? { m, t0: this.time } : null; }
+    showHint(m, hand) { this.hint = m ? { m, t0: this.time, hand: !!hand } : null; }
 
     // ---------- effects helpers ----------
 
@@ -589,6 +589,7 @@
           ctx.drawImage(img, px + cs / 2 - w / 2, py + cs / 2 - w / 2, w, w);
         }
       }
+      if (this.hint && this.hint.hand && t - this.hint.t0 < 60000) this.drawHand(ctx, t);
       this.drawFx(ctx, t);
       // particles
       for (const p of this.particles) {
@@ -643,6 +644,28 @@
       const pad = cs * (1 - scale) / 2;
       ctx.roundRect ? ctx.roundRect(this.bx + c * cs + 2 + pad, this.by + r * cs + 2 + pad, cs - 4 - 2 * pad, cs - 4 - 2 * pad, cs * 0.18) : ctx.rect(this.bx + c * cs, this.by + r * cs, cs, cs);
       ctx.fill();
+    }
+
+    // Pointing hand for the first levels: slides from one hinted piece to the other, or taps a booster.
+    drawHand(ctx, t) {
+      const cs = this.cs, m = this.hint.m;
+      const from = m.tap != null ? m.tap : m.a, to = m.tap != null ? m.tap : m.b;
+      const [r0, c0] = this.rc(from), [r1, c1] = this.rc(to);
+      const k = ((t - this.hint.t0) % 1400) / 1400;
+      const slide = this.reduced ? 0 : k < 0.15 ? 0 : k < 0.6 ? easeOut((k - 0.15) / 0.45) : 1;
+      const alpha = k < 0.1 ? k / 0.1 : k > 0.85 ? (1 - k) / 0.15 : 1;
+      const press = m.tap != null && !this.reduced ? 1 - 0.12 * Math.sin(k * Math.PI) : 1;
+      const x = this.cx(c0 + (c1 - c0) * slide), y = this.cy(r0 + (r1 - r0) * slide);
+      const size = cs * 0.95 * press;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.font = size + 'px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.shadowColor = 'rgba(0,0,0,0.45)';
+      ctx.shadowBlur = cs * 0.12;
+      ctx.fillText('\u{1F446}', x + cs * 0.05, y - cs * 0.08);
+      ctx.restore();
     }
 
     drawSpecialGlow(s, x, y, t) {

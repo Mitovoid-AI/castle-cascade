@@ -34,7 +34,7 @@ Capacitor 8 needs **Java 21** for Android builds (Android Studio's bundled JDK w
 
 Ad rules in the game (edit `interstitial` in `src/config.js`):
 - Rewarded ads are always optional: +5 moves when out of moves, +1 life when out of lives, double coins after a win.
-- Between-level ads start at level 15, at most every 3 finished levels, never twice within 2 minutes, and never for players with Castle Cascade Pro.
+- Between-level ads start at level 20, at most every 3 won levels, never twice within 3 minutes, never right after a lost level, and never for players with Castle Cascade Pro.
 
 ## 2. RevenueCat (Castle Cascade Pro, paywall, analytics)
 

@@ -40,5 +40,5 @@ export default {
 
   // Between-level ads: never before this level, at most every N finished
   // levels, and never twice within this many seconds.
-  interstitial: { fromLevel: 15, everyLevels: 3, minSeconds: 120 },
+  interstitial: { fromLevel: 20, everyLevels: 3, minSeconds: 180 },
 };

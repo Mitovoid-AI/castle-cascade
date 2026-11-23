@@ -183,7 +183,9 @@
     const two = (x) => String(x).padStart(2, '0');
     return h ? h + ':' + two(m) + ':' + two(sec) : m + ':' + two(sec);
   }
-  const today = () => new Date().toISOString().slice(0, 10);
+  // Calendar day in the player's own time zone, so the daily gift resets at local midnight.
+  const dayKey = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const today = () => dayKey(new Date());
 
   // ---------- achievements & ranks ----------
 
@@ -436,11 +438,11 @@
     if (!ok) toast('Watch the whole ad to get the reward.');
     return ok;
   }
-  // A between-level ad may play as the player leaves a finished level.
-  async function leaveLevel(levelN, next) {
+  // A between-level ad may play as the player leaves a won level; never right after a loss.
+  async function leaveLevel(levelN, next, won = true) {
     closeModal();
     const n = native();
-    if (n) await withAdAudio(() => n.afterLevel(levelN));
+    if (n && won) await withAdAudio(() => n.afterLevel(levelN));
     if (!(await portalBreak('levelEnd'))) return;
     next();
   }
@@ -647,7 +649,9 @@
   function openDaily() {
     const claimed = S.daily.last === today();
     let day = S.daily.day;
-    const y = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    const yd = new Date();
+    yd.setDate(yd.getDate() - 1);
+    const y = dayKey(yd);
     if (!claimed && S.daily.last && S.daily.last !== y) day = 0;
     const idx = claimed ? (day + 6) % 7 : day % 7;
     const tiles = DAILY.map((r, k) => {
@@ -676,6 +680,11 @@
         },
       }
     );
+  }
+
+  // Returning players get the daily gift as soon as they reach the kingdom on a new day.
+  function offerDaily() {
+    if (screen === 'home' && $('#modal').hidden && $('#intro').hidden && S.wins > 0 && S.daily.last !== today()) openDaily();
   }
 
   function openChestInfo() {
@@ -953,6 +962,7 @@
     S.attempt.n++;
     save();
     shownGoals = game.goals.map((g) => g.left);
+    $('#tipCard').hidden = true;
     $('#levelBadge').textContent = 'Level ' + fmtN(n);
     show('game');
     renderGoals();
@@ -963,7 +973,8 @@
     banner('<small>Level ' + fmtN(n) + '</small>' + (level.kind ? '<em class="k' + level.kind + '">' + kindName(level.kind) + '</em>' : '') +
       '<span class="bgoals">' + game.goals.map((g) => icon(goalIcon(g), 'ic md') + '<b>' + g.total + '</b>').join('') + '</span>', 1500).then(() => {
       busy = false;
-      if (level.tip) showTip(level.tip);
+      // The tip card shows on the first attempt only; the level start card still lists it.
+      if (level.tip && S.attempt.n === 1) showTip(level.tip);
       armHint();
     });
   }
@@ -992,7 +1003,7 @@
     if (!game || game.status !== 'play') return;
     hintTimer = setTimeout(() => {
       if (busy || !game || game.status !== 'play' || screen !== 'game') return;
-      view.showHint(bestHint());
+      view.showHint(bestHint(), level.n <= 2);
     }, S.level <= 3 ? 3000 : 6500);
   }
   function bestHint() {
@@ -1228,9 +1239,9 @@
       '<button class="btn green big" data-act="retry" data-focus>Try again</button>' +
       '<button class="btn ghost" data-act="home">Kingdom</button>',
       {
-        retry: () => leaveLevel(n, () => { game = null; show('home'); openLevelStart(); }),
-        home: () => leaveLevel(n, () => { game = null; show('home'); }),
-        back: () => leaveLevel(n, () => { game = null; show('home'); }),
+        retry: () => leaveLevel(n, () => { game = null; show('home'); openLevelStart(); }, false),
+        home: () => leaveLevel(n, () => { game = null; show('home'); }, false),
+        back: () => leaveLevel(n, () => { game = null; show('home'); }, false),
       }
     );
   }
@@ -1291,7 +1302,7 @@
   if (native()) {
     native().onBack(handleBack);
     native().onPause(() => Sfx.setEnabled(false));
-    native().onResume(() => Sfx.setEnabled(S.sound));
+    native().onResume(() => { Sfx.setEnabled(S.sound); offerDaily(); });
   }
   if (window.CCPortal) {
     window.CCPortal.connect({ pause: () => Sfx.setEnabled(false), resume: () => Sfx.setEnabled(S.sound) });
@@ -1422,6 +1433,7 @@
         setTimeout(() => home.classList.remove('enter'), 1400);
         // Consent form and ad loading wait until the player is past the intro.
         if (native()) native().start();
+        setTimeout(offerDaily, reduced ? 100 : 900);
       }, reduced ? 50 : 620);
     });
   }
